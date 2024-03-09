@@ -5,7 +5,7 @@ build-backend = "maturin"
 [project]
 name = "polars_ml"
 requires-python = ">=3.8"
-dependencies = ["polars>=0.20.7"]
+dependencies = ["polars>=0.20.12"]
 classifiers = [
   "Programming Language :: Rust",
   "Programming Language :: Python :: Implementation :: CPython",

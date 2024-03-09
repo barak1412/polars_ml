@@ -1,4 +1,5 @@
 mod nltk;
+mod sparse;
 
 #[cfg(target_os = "linux")]
 use jemallocator::Jemalloc;
