@@ -12,3 +12,11 @@ def from_list(expr: pl.Expr) -> pl.Expr:
         symbol="from_list",
         is_elementwise=True,
     )
+
+
+def normalize(expr: pl.Expr) -> pl.Expr:
+    return expr.register_plugin(
+        lib=_lib,
+        symbol="normalize",
+        is_elementwise=True,
+    )
