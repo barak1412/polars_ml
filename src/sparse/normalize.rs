@@ -95,6 +95,7 @@ fn normalize_vertical(struct_name: &str, fields: &[Series], indices_ca: &ListChu
     }
 }
 
+#[inline]
 fn normalize_ca<T>(indices_ca: &IdxCa, values_ca: &ChunkedArray<T>, indices_norms: &HashMap<IdxSize, f64>) -> Float64Chunked
     where
         T: PolarsNumericType,
@@ -147,6 +148,7 @@ fn sparse_summarize(indices_list_ca: &ListChunked, values_list_ca: &ListChunked,
     }
 }
 
+#[inline]
 fn add_single_list_to_map<T>(indices_ca: &IdxCa, values_ca: &ChunkedArray<T>,
                              indices_norms: &mut HashMap<IdxSize, f64>, p: f64) -> ()
     where
