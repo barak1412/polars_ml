@@ -29,7 +29,7 @@ fn from_list(inputs: &[Series]) -> PolarsResult<Series> {
         DataType::Int32 | DataType::Int64 | DataType::Float32 | DataType::Float64 => impl_from_list(lst_ca),
         dtype => {
             polars_bail!(InvalidOperation:format!("dtype {dtype} not \
-            supported for abs_numeric, expected Int32, Int64, Float32, Float64."))
+            supported for from_list, expected Int32, Int64, Float32, Float64."))
         }
     }
 }
