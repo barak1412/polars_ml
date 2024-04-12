@@ -10,7 +10,7 @@ _lib = _get_shared_lib_location(os.path.dirname(__file__))
 
 def from_list(expr: pl.Expr) -> pl.expr:
     output_name = expr.meta.output_name()
-    return pl.struct(expr.list.len().alias(DIM),
+    return pl.struct(pl.when(expr.is_null()).then(None).otherwise(expr.list.len().alias(DIM)),
                      expr.list.eval(pl.arg_where(pl.element() != 0)).alias(INDICES),
                      expr.list.eval(pl.element().filter(pl.element() != 0)).alias(VALUES)).alias(output_name)
 
