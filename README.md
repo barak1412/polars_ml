@@ -47,7 +47,24 @@ shape: (4, 2)
 │ null        ┆ {null,null,null}        │
 └─────────────┴─────────────────────────┘
 ```
-
+```python
+df_sparse_norm = df_sparse.select('sparse_feature') \
+    .with_columns(ps.normalize(pl.col('sparse_feature'), how='vertical', p=2.0).alias('sparse_feature_norm'))
+print(df_sparse_norm)
+```
+```
+shape: (4, 2)
+┌─────────────────────────┬───────────────────────────────────┐
+│ sparse_feature          ┆ sparse_feature_norm               │
+│ ---                     ┆ ---                               │
+│ struct[3]               ┆ struct[3]                         │
+╞═════════════════════════╪═══════════════════════════════════╡
+│ {6,[1, 4],[1, 5]}       ┆ {6,[1, 4],[0.707107, 0.857493]}   │
+│ {6,[0, 4, 5],[2, 3, 4]} ┆ {6,[0, 4, 5],[1.0, 0.514496, 1.0… │
+│ {2,[1],[1]}             ┆ {2,[1],[0.707107]}                │
+│ {null,null,null}        ┆ {null,null,null}                  │
+└─────────────────────────┴───────────────────────────────────┘
+```
 # Credits
 
 1. Rust Snowball Stemmer is taken from Tsoding's Seroost project (MIT). See [here](https://github.com/tsoding/seroost)
