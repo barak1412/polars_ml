@@ -30,34 +30,39 @@ pub struct Node2VecKwargs {
     pub verbose: bool
 }
 
-//#[polars_expr(output_type=Int64)]
-pub fn node2vec_without_weights(inputs: &[Series], node2vec_kwargs: Node2VecKwargs) -> PolarsResult<Series> {
+fn float_array(input_fields: &[Field], kwargs: Node2VecKwargs) -> PolarsResult<Field> {
+    Ok(Field::new("embedding",
+                  DataType::Array(Box::new(DataType::Float32), kwargs.embedding_size as usize)))
+}
+
+#[polars_expr(output_type_func_with_kwargs=float_array)]
+pub fn node2vec_without_weights(inputs: &[Series], kwargs: Node2VecKwargs) -> PolarsResult<Series> {
     let source_nodes_ca = inputs[0].str()?;
     let neighbors_lst_ca = inputs[1].list()?;
 
     // build walks params
-    let walks_params = build_walks_params(&node2vec_kwargs);
+    let walks_params = build_walks_params(&kwargs);
 
     // build model
-    let node2vec = build_node2vec(&node2vec_kwargs, walks_params);
+    let node2vec = build_node2vec(&kwargs, walks_params);
 
     // build the graph
-    let graph = build_graph_without_weights(source_nodes_ca, neighbors_lst_ca, node2vec_kwargs.is_directed);
+    let graph = build_graph_without_weights(source_nodes_ca, neighbors_lst_ca, kwargs.is_directed);
 
     // run node2vec walks and model
-    let mut embedding_1d_central = vec![0.0f32; node2vec_kwargs.embedding_size as usize * graph.get_number_of_nodes() as usize];
-    let mut embedding_1d_contextual = vec![0.0f32; node2vec_kwargs.embedding_size as usize * graph.get_number_of_nodes() as usize];
+    let mut embedding_1d_central = vec![0.0f32; kwargs.embedding_size as usize * graph.get_number_of_nodes() as usize];
+    let mut embedding_1d_contextual = vec![0.0f32; kwargs.embedding_size as usize * graph.get_number_of_nodes() as usize];
     let mut embedding_buffer = vec![embedding_1d_central.as_mut_slice(), embedding_1d_contextual.as_mut_slice()];
     node2vec.fit_transform(&graph, embedding_buffer.as_mut_slice());
 
     // transform to series
-    let embedding = match node2vec_kwargs.embedding_type.as_str() {
+    let embedding = match kwargs.embedding_type.as_str() {
         "central" => &embedding_buffer[0],
         "contextual" => &embedding_buffer[1],
         _ => !unreachable!()
     };
     let embedding_series = transform_embedding_to_series(&source_nodes_ca,
-                        &graph, embedding, node2vec_kwargs.embedding_size);
+                                                         &graph, embedding, kwargs.embedding_size);
     Ok(embedding_series)
 }
 
