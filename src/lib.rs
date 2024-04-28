@@ -1,5 +1,6 @@
 mod nltk;
 mod sparse;
+pub mod graph;
 
 #[cfg(target_os = "linux")]
 use jemallocator::Jemalloc;
