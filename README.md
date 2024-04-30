@@ -12,6 +12,74 @@ pip install polars-ml
 ```
 
 # Examples
+## Graph Namespace
+```python
+import polars as pl
+import polars_ml as plm
+
+df = pl.DataFrame({
+    'src_node': ['V1', 'V2', 'V3'],
+    'neighbors': [['V2', 'V4'], ['V3'], ['V1']],
+    'weights': [[1.0, 2.0], [0.5], [3.5]]
+})
+
+embedding_df = df.with_columns(
+    plm.graph.node2vec(source_node=pl.col('src_node'),
+                       neighbors=pl.col('neighbors'),
+                       weights=pl.col('weights'),
+                       is_directed=False,
+                       p=1.0,
+                       q=1.0,
+                       max_neighbors=50,
+                       embedding_size=64,
+                       random_state=42,
+                       verbose=True).alias('embedding')
+).select('src_node', 'embedding')
+
+print(embedding_df)
+```
+```
+shape: (3, 2)
+┌──────────┬───────────────────────────────────┐
+│ src_node ┆ embedding                         │
+│ ---      ┆ ---                               │
+│ str      ┆ list[f32]                         │
+╞══════════╪═══════════════════════════════════╡
+│ V1       ┆ [0.521827, -0.314611, … -0.16515… │
+│ V2       ┆ [0.335624, -0.041853, … 0.224424… │
+│ V3       ┆ [0.274431, -0.210741, … -0.02325… │
+└──────────┴───────────────────────────────────┘
+```
+## Nltk Namespace
+```python
+import polars as pl
+import polars_ml as plm
+
+
+df = pl.DataFrame({
+    'words': ['the', 'bull', 'is', 'running', 'away']
+})
+
+df_stemmed = df.with_columns(
+    plm.nltk.snowball_stem(pl.col('words'), language='english')
+)
+
+print(df_stemmed)
+```
+```
+shape: (5, 1)
+┌───────┐
+│ words │
+│ ---   │
+│ str   │
+╞═══════╡
+│ the   │
+│ bull  │
+│ is    │
+│ run   │
+│ away  │
+└───────┘
+```
 ## Sparse Namespace
 
 ```python
@@ -67,5 +135,6 @@ shape: (4, 2)
 ```
 # Credits
 
-1. Rust Snowball Stemmer is taken from Tsoding's Seroost project (MIT). See [here](https://github.com/tsoding/seroost)
-2. [Marco Edward Gorelli](https://github.com/MarcoGorelli) - for using his [polars plugin tutorial](https://marcogorelli.github.io/polars-plugins-tutorial).
+1. GRAPE for fast and scalable graph processing and random-walk-based embedding. See article [here](https://www.nature.com/articles/s43588-023-00465-8) and library [here](https://github.com/AnacletoLAB/grape).
+2. Rust Snowball Stemmer is taken from Tsoding's Seroost project (MIT). See [here](https://github.com/tsoding/seroost).
+3. [Marco Edward Gorelli](https://github.com/MarcoGorelli) - for using his [polars plugin tutorial](https://marcogorelli.github.io/polars-plugins-tutorial).
