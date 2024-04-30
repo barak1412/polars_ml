@@ -33,16 +33,26 @@ pub struct Node2VecKwargs {
 }
 
 fn float_array(input_fields: &[Field], kwargs: Node2VecKwargs) -> PolarsResult<Field> {
+    //Ok(Field::new("embedding", DataType::Array(Box::new(DataType::Float32), kwargs.embedding_size as usize)))
     Ok(Field::new("embedding",
-                  DataType::Array(Box::new(DataType::Float32), kwargs.embedding_size as usize)))
+                  DataType::List(Box::new(DataType::Float32))))
 }
 
 #[polars_expr(output_type_func_with_kwargs=float_array)]
 fn node2vec_without_weights(inputs: &[Series], kwargs: Node2VecKwargs) -> PolarsResult<Series> {
     imp_node2vec(inputs, kwargs, false)
 }
+#[polars_expr(output_type_func_with_kwargs=float_array)]
+fn node2vec_with_weights(inputs: &[Series], kwargs: Node2VecKwargs) -> PolarsResult<Series> {
+    imp_node2vec(inputs, kwargs, true)
+}
 
 pub fn imp_node2vec(inputs: &[Series], kwargs: Node2VecKwargs, has_weights: bool) -> PolarsResult<Series> {
+    // handle empty dataframe
+    if inputs[0].is_empty() {
+        return Ok(Series::new_empty("", &DataType::List(Box::new(DataType::Float32))))
+    }
+
     let source_nodes_ca = inputs[0].str()?;
     let neighbors_lst_ca = inputs[1].list()?;
 
@@ -58,9 +68,9 @@ pub fn imp_node2vec(inputs: &[Series], kwargs: Node2VecKwargs, has_weights: bool
         true => {
             let neighbors_weights_lst_ca = inputs[2].list()?;
             match neighbors_weights_lst_ca.inner_dtype()  {
-                DataType::Float32 => build_graph_with_weights(source_nodes_ca, neighbors_lst_ca, neighbors_weights_lst_ca, kwargs.is_directed),
+                DataType::Float64 => build_graph_with_weights(source_nodes_ca, neighbors_lst_ca, neighbors_weights_lst_ca, kwargs.is_directed),
                 dtype => polars_bail!(InvalidOperation:format!("dtype {dtype} not \
-                        supported for weights, expected Float32."))
+                        supported for weights, expected Float64."))
             }
         }
     };
@@ -179,11 +189,11 @@ fn build_graph_with_weights(source_nodes_ca: &StringChunked, neighbors_lst_ca: &
                            neighbors_lst_series_option), neighbors_weights_lst_series_option)| {
                 if let (Some(source_node), Some(neighbors_lst_series), Some(neighbors_weights_lst_series)) = (source_node_option, neighbors_lst_series_option, neighbors_weights_lst_series_option) {
                     let neighbors_lst_series = neighbors_lst_series.as_ref().str().unwrap();
-                    let neighbors_weights_lst_series = neighbors_weights_lst_series.as_ref().f32().unwrap();
+                    let neighbors_weights_lst_series = neighbors_weights_lst_series.as_ref().f64().unwrap();
                     neighbors_lst_series.iter()
                         .zip(neighbors_weights_lst_series).for_each(|(neighbor_node, neighbor_weight)|{
                         if let (Some(neighbor_node), Some(neighbor_weight)) = (neighbor_node, neighbor_weight) {
-                            graph_builder.add_edge(source_node.to_string(), neighbor_node.to_string(), None, Some(neighbor_weight));
+                            graph_builder.add_edge(source_node.to_string(), neighbor_node.to_string(), None, Some(neighbor_weight as f32));
                         }
                     })
                 }

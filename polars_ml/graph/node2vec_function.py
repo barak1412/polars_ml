@@ -42,7 +42,8 @@ def node2vec(source_node: pl.Expr, neighbors: pl.Expr, weights: pl.Expr = None,
         func_args = [source_node, neighbors]
         func_name = 'node2vec_without_weights'
     else:
-        raise NotImplemented()
+        func_args = [source_node, neighbors, weights]
+        func_name = 'node2vec_with_weights'
 
     return register_plugin_function(
         args=func_args,
