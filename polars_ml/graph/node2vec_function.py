@@ -1,12 +1,12 @@
 import os.path
 import polars as pl
-from polars.utils.udfs import _get_shared_lib_location
 from polars.plugins import register_plugin_function
+from polars_ml import lib
 
 
-_lib = _get_shared_lib_location(os.path.dirname(__file__))
 _SUPPORTED_MODEL_TYPES = ['skipgram', 'cbow']
 _SUPPORTED_EMBEDDING_TYPES = ['central', 'contextual']
+
 
 def _validate_node2vec_params(walk_length: int,
                               num_of_walks: int,
@@ -81,7 +81,7 @@ def node2vec(source_node: pl.Expr, neighbors: pl.Expr, weights: pl.Expr = None,
 
     return register_plugin_function(
         args=func_args,
-        plugin_path=_lib,
+        plugin_path=lib,
         function_name=func_name,
         is_elementwise=True,
         kwargs=func_kwargs

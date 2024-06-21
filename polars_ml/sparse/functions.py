@@ -1,11 +1,8 @@
 import os.path
 import polars as pl
-from polars.utils.udfs import _get_shared_lib_location
 from polars.plugins import register_plugin_function
+from polars_ml import lib
 from polars_ml.sparse.constants import DIM, INDICES, VALUES
-
-
-_lib = _get_shared_lib_location(os.path.dirname(__file__))
 
 
 def from_list(expr: pl.Expr) -> pl.expr:
@@ -24,7 +21,7 @@ def normalize(expr: pl.Expr,  *, how: str = 'vertical', p: float = 2.0) -> pl.Ex
 
     return register_plugin_function(
         args=[expr],
-        plugin_path=_lib,
+        plugin_path=lib,
         function_name='normalize',
         is_elementwise=True,
         kwargs={'how': how, 'p': p}
