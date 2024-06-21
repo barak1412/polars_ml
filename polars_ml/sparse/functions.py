@@ -1,4 +1,3 @@
-import os.path
 import polars as pl
 from polars.plugins import register_plugin_function
 from polars_ml import lib
