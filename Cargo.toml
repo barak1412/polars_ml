@@ -1,6 +1,6 @@
 [package]
 name = "polars_ml"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 
 [lib]
@@ -14,7 +14,7 @@ serde = { version = "1", features = ["derive"] }
 polars = { version = "0.38.3", features = ["strings", "dtype-struct", "dtype-array"] , default-features = false }
 rust-stemmers = "1.2.0"
 num-traits = "0.2.18"
-grape = { path = "../grape"}
+grape = { git = "https://github.com/barak1412/grape.git"}
 
 [target.'cfg(target_os = "linux")'.dependencies]
 jemallocator = { version = "0.5", features = ["disable_initial_exec_tls"] }
