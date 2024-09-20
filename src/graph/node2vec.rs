@@ -6,7 +6,7 @@ use grape::graph::GraphBuilder;
 use grape::graph::Graph;
 use grape::graph::walks_parameters::{WalksParameters, SingleWalkParameters, WalkWeights};
 use grape::cpu_models::{Node2Vec, Node2VecModels, IdentifyWalkTransformer, GraphEmbedder};
-
+use indicatif::{ProgressBar, ProgressStyle};
 
 #[derive(Deserialize)]
 pub struct Node2VecKwargs {
@@ -64,11 +64,13 @@ pub fn imp_node2vec(inputs: &[Series], kwargs: Node2VecKwargs, has_weights: bool
 
     // build the graph
     let graph = match has_weights {
-        false => build_graph_without_weights(source_nodes_ca, neighbors_lst_ca, kwargs.is_directed),
+        false => build_graph_without_weights(source_nodes_ca, neighbors_lst_ca, kwargs.is_directed,
+                    kwargs.verbose),
         true => {
             let neighbors_weights_lst_ca = inputs[2].list()?;
             match neighbors_weights_lst_ca.inner_dtype()  {
-                DataType::Float64 => build_graph_with_weights(source_nodes_ca, neighbors_lst_ca, neighbors_weights_lst_ca, kwargs.is_directed),
+                DataType::Float64 => build_graph_with_weights(source_nodes_ca, neighbors_lst_ca, neighbors_weights_lst_ca,
+                                                              kwargs.is_directed, kwargs.verbose),
                 dtype => polars_bail!(InvalidOperation:format!("dtype {dtype} not \
                         supported for weights, expected Float64."))
             }
@@ -152,15 +154,19 @@ fn build_node2vec(node2vec_kwargs: &Node2VecKwargs, walks_params: WalksParameter
     node2vec
 }
 fn build_graph_without_weights(source_nodes_ca: &StringChunked, neighbors_lst_ca: &ListChunked,
-                is_directed: bool) -> Graph {
+                is_directed: bool, verbose: bool) -> Graph {
     let mut graph_builder = GraphBuilder::new(None, Some(is_directed));
     graph_builder.set_default_weight(1.0);
+
+    // create progress bar with verbose
+    let progress_bar = get_loading_bar(verbose, "Graph loading", source_nodes_ca.len());
 
     // add edges without duplicates
     unsafe {
         source_nodes_ca.iter()
             .zip(neighbors_lst_ca.amortized_iter())
             .for_each(|(source_node_option, neighbors_lst_series_option)| {
+                progress_bar.inc(1);
                 if let (Some(source_node), Some(neighbors_lst_series)) = (source_node_option, neighbors_lst_series_option) {
                     let neighbors_lst_series = neighbors_lst_series.as_ref().str().unwrap();
                     neighbors_lst_series.for_each(|neighbor_node|{
@@ -171,14 +177,17 @@ fn build_graph_without_weights(source_nodes_ca: &StringChunked, neighbors_lst_ca
                 }
             });
     }
-
+    progress_bar.finish();
     let graph: Graph = graph_builder.build().unwrap();
     graph
 }
 
 fn build_graph_with_weights(source_nodes_ca: &StringChunked, neighbors_lst_ca: &ListChunked,
-                               neighbors_weights_lst: &ListChunked, is_directed: bool) -> Graph {
+                               neighbors_weights_lst: &ListChunked, is_directed: bool, verbose: bool) -> Graph {
     let mut graph_builder = GraphBuilder::new(None, Some(is_directed));
+
+    // create progress bar with verbose
+    let progress_bar = get_loading_bar(verbose, "Graph loading", source_nodes_ca.len());
 
     // add edges without duplicates
     unsafe {
@@ -187,6 +196,7 @@ fn build_graph_with_weights(source_nodes_ca: &StringChunked, neighbors_lst_ca: &
             .zip(neighbors_weights_lst.amortized_iter())
             .for_each(|((source_node_option,
                            neighbors_lst_series_option), neighbors_weights_lst_series_option)| {
+                progress_bar.inc(1);
                 if let (Some(source_node), Some(neighbors_lst_series), Some(neighbors_weights_lst_series)) = (source_node_option, neighbors_lst_series_option, neighbors_weights_lst_series_option) {
                     let neighbors_lst_series = neighbors_lst_series.as_ref().str().unwrap();
                     let neighbors_weights_lst_series = neighbors_weights_lst_series.as_ref().f64().unwrap();
@@ -199,7 +209,23 @@ fn build_graph_with_weights(source_nodes_ca: &StringChunked, neighbors_lst_ca: &
                 }
             });
     }
-
+    progress_bar.finish();
     let graph: Graph = graph_builder.build().unwrap();
     graph
+}
+
+fn get_loading_bar(verbose: bool, desc: &str, total_iterations: usize) -> ProgressBar {
+    if verbose {
+        let pb = ProgressBar::new(total_iterations as u64);
+        let candidate_iterations = total_iterations as u64 / 1000;
+        let candidate_iterations = candidate_iterations.max(1);
+        pb.set_draw_delta(candidate_iterations);
+        pb.set_style(ProgressStyle::default_bar().template(&format!(
+            "{desc} {{spinner:.green}} [{{elapsed_precise}}] [{{bar:40.cyan/blue}}] ({{pos}}/{{len}}, ETA {{eta}})",
+            desc=desc
+        )));
+        pb
+    } else {
+        ProgressBar::hidden()
+    }
 }
