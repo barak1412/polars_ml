@@ -82,6 +82,6 @@ def node2vec(source_node: pl.Expr, neighbors: pl.Expr, weights: pl.Expr = None,
         args=func_args,
         plugin_path=lib,
         function_name=func_name,
-        is_elementwise=True,
+        is_elementwise=False,
         kwargs=func_kwargs
     )
