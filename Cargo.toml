@@ -15,6 +15,7 @@ polars = { version = "0.38.3", features = ["strings", "dtype-struct", "dtype-arr
 rust-stemmers = "1.2.0"
 num-traits = "0.2.18"
 grape = { git = "https://github.com/barak1412/grape.git"}
+indicatif = {version="0.16.0", features = ["rayon"]}
 
 [target.'cfg(target_os = "linux")'.dependencies]
 jemallocator = { version = "0.5", features = ["disable_initial_exec_tls"] }
